@@ -209,66 +209,32 @@ const scheduleData = [
   {room: "机房16", time: "下午5-6节", week: "周二", course: "交互设计(理论)", teacher: "范樱子", className: "2025级数字媒体技术2班", weekNum: "8-11周"}
 ];
 
-// 核心查询逻辑：兼顾精确匹配（带编号）和模糊匹配（简称）
+// 核心查询逻辑：极简模糊匹配，确保所有简称都能查到
 function searchSchedule() {
   const key = document.getElementById("key").value.trim().toLowerCase();
   const resultBox = document.getElementById("result");
   
   resultBox.innerHTML = "";
   if (!key) {
-    resultBox.innerHTML = '<div class="empty">请输入班级/教师姓名/机房号进行查询</div>';
+    resultBox.innerHTML = '<div class="empty">请输入班级/教师姓名/机房号查询</div>';
     return;
   }
 
-  // 1. 智能简称映射（兼容"数媒""学前"等简称）
-  const aliasMap = {
-    "小教": "小学教育", "语教": "小学语文教育", "小英": "小学英语教育",
-    "小数": "小学数学教育", "小科": "小学科学教育", "学前": "学前教育",
-    "音教": "音乐教育", "美教": "美术教育", "文秘": "现代文秘",
-    "计科": "计算机科学与技术", "数媒": "数字媒体技术", "视传": "视觉传达设计",
-    "广告": "广告艺术设计", "动漫": "动漫制作技术", "大数据": "大数据技术",
-    "会计": "大数据与会计", "计算机应用": "计算机应用技术", "智能制造": "智能制造装备技术",
-    "电气": "电气自动化技术", "机电": "机电一体化技术", "电子": "应用电子技术",
-    "新能源": "新能源汽车技术", "汽车": "汽车制造与试验技术", "化工": "化工生物技术",
-    "食加": "食品智能加工技术", "食检": "食品检验检测技术", "食品工程": "食品科学与工程",
-    "旅游": "旅游管理", "市营": "市场营销", "物流": "现代物流管理", "空乘": "空中乘务"
-  };
-  
-  // 替换简称
-  let processedKey = key;
-  for (const [short, full] of Object.entries(aliasMap)) {
-    processedKey = processedKey.replace(new RegExp(short, 'gi'), full);
-  }
-
-  // 2. 分级匹配逻辑
-  let filterData = [];
-  // 先尝试精确匹配（带班级编号，如"25数媒2"→"2025级数字媒体技术2班"）
-  const exactMatch = scheduleData.filter(item => {
-    const classNameLower = item.className.toLowerCase();
-    return classNameLower.includes(processedKey) || 
-           // 兼容"24学前1"匹配"24级学前1班"
-           classNameLower.includes(key.replace(/(\d+)(\D+)(\d+)/, '$1级$2$3班'));
+  // 直接模糊匹配所有字段，不搞复杂映射，确保兼容性
+  const filterData = scheduleData.filter(item => {
+    const room = item.room.toLowerCase();
+    const teacher = item.teacher.toLowerCase();
+    const className = item.className.toLowerCase();
+    const course = item.course.toLowerCase();
+    
+    // 匹配规则：关键词包含在任意字段中即可
+    return room.includes(key) || 
+           teacher.includes(key) || 
+           className.includes(key) || 
+           course.includes(key);
   });
 
-  // 如果有精确匹配结果，优先用；没有则用模糊匹配
-  if (exactMatch.length > 0) {
-    filterData = exactMatch;
-  } else {
-    // 模糊匹配：兼容机房号、教师、班级简称
-    filterData = scheduleData.filter(item => {
-      const room = item.room.toLowerCase();
-      const teacher = item.teacher.toLowerCase();
-      const className = item.className.toLowerCase();
-      const course = item.course.toLowerCase();
-      
-      return room.includes(key) || 
-             teacher.includes(key) || 
-             className.includes(key) || 
-             course.includes(key);
-    });
-  }
-
-  // 3. 结果展示
+  // 结果展示
   if (filterData.length === 0) {
     resultBox.innerHTML = '<div class="empty">未查询到相关上课信息<br>请重新输入关键字</div>';
     return;
